@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Papan Downtime // datadt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot" id="statusDot"></span>
+      <div class="brand-text">
+        <h1>Papan Downtime</h1>
+        <p class="brand-sub">Sumber data: sheet <code>datadt</code> — Tanggal · Shift · Mesin · Kategori</p>
+      </div>
+    </div>
+    <div class="sync">
+      <span id="syncStatus" class="sync-status">Memuat data…</span>
+      <button id="btnRefresh" class="btn btn-ghost" title="Ambil ulang data dari sheet">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div id="errorBanner" class="error-banner" style="display:none;"></div>
+
+  <!-- FILTERS -->
+  <section class="panel filters">
+    <div class="filter-group">
+      <label>Dari Tanggal</label>
+      <input type="date" id="filterDateFrom">
+    </div>
+    <div class="filter-group">
+      <label>Sampai Tanggal</label>
+      <input type="date" id="filterDateTo">
+    </div>
+    <div class="filter-group">
+      <label>Shift</label>
+      <select id="filterShift"><option value="all">Semua</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Mesin</label>
+      <select id="filterMesin"><option value="all">Semua</option></select>
+    </div>
+    <div class="filter-group">
+      <label>Kategori</label>
+      <select id="filterKategori"><option value="all">Semua</option></select>
+    </div>
+    <div class="filter-group grow">
+      <label>Cari Catatan</label>
+      <input type="text" id="searchBox" placeholder="kata kunci pada Other Note…">
+    </div>
+    <div class="filter-actions">
+      <button id="btnReset" class="btn btn-ghost">Reset Filter</button>
+      <button id="btnExport" class="btn btn-primary">⭳ Unduh CSV</button>
+    </div>
+  </section>
+
+  <!-- KPI STRIP -->
+  <section class="kpi-strip">
+    <div class="kpi-card kpi-blue">
+      <span class="kpi-label">Total Downtime</span>
+      <span class="kpi-value" id="kpiTotalDowntime">0m</span>
+    </div>
+    <div class="kpi-card kpi-green">
+      <span class="kpi-label">Jumlah Entri</span>
+      <span class="kpi-value" id="kpiTotalRecords">0</span>
+    </div>
+    <div class="kpi-card kpi-lavender">
+      <span class="kpi-label">Rata-rata / Entri</span>
+      <span class="kpi-value" id="kpiAvg">0m</span>
+    </div>
+    <div class="kpi-card kpi-peach">
+      <span class="kpi-label">Kategori Terbesar</span>
+      <span class="kpi-value" id="kpiTopCause">-</span>
+    </div>
+  </section>
+
+  <!-- SIGNATURE: COMPOSITION STRIP -->
+  <section class="panel comp-panel">
+    <div class="panel-title-row">
+      <h2>Komposisi Downtime</h2>
+      <span class="panel-hint">Proporsi tiap kategori terhadap total downtime pada filter aktif</span>
+    </div>
+    <div class="comp-strip" id="compStrip"></div>
+    <div class="comp-legend" id="compLegend"></div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section class="panel insight-panel">
+    <div class="panel-title-row">
+      <h2>Insight Otomatis</h2>
+      <span class="panel-hint">Dihitung ulang setiap filter berubah</span>
+    </div>
+    <ul id="insightList" class="insight-list"></ul>
+  </section>
+
+  <!-- CHARTS -->
+  <section class="charts-grid">
+    <div class="panel chart-panel">
+      <div class="panel-title-row">
+        <h2>Pareto Kategori Downtime</h2>
+        <span class="panel-hint">Batang = menit, garis = kumulatif %</span>
+      </div>
+      <div class="chart-box"><canvas id="chartPareto"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-title-row">
+        <h2>Tren Downtime Harian</h2>
+        <span class="panel-hint">Total menit downtime per tanggal</span>
+      </div>
+      <div class="chart-box"><canvas id="chartTrend"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-title-row">
+        <h2>Downtime per Mesin</h2>
+      </div>
+      <div class="chart-box"><canvas id="chartByMesin"></canvas></div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-title-row">
+        <h2>Downtime per Shift</h2>
+      </div>
+      <div class="chart-box"><canvas id="chartByShift"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section class="panel table-panel">
+    <div class="panel-title-row">
+      <h2>Log Entri</h2>
+      <span class="panel-hint" id="tableCount">0 entri</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr id="tableHeadRow"></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Sumber data: Google Sheets — sheet <code>datadt</code> (Tanggal, Shift, Mesin, Kategori, Downtime, Other Note).</span>
+  </footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
