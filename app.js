@@ -5,7 +5,7 @@
    ========================================================================= */
 const CONFIG = {
   SHEET_ID: '1RBYWSWbJSlrtwx3t33y6oMLLbp-PmTbSjEAB9ccipCY',
-  DATADT_GID: 'PASTE_GID_DATADT_HERE' // <-- ganti dengan angka gid sheet "datadt"
+  DATADT_GID: '1423300991' // <-- ganti dengan angka gid sheet "datadt"
 };
 
 // Header yang diharapkan pada sheet "datadt" (urutan bebas, dicocokkan by name)
