@@ -85,6 +85,10 @@ h1{
   background: #FDECEC; border: 1px solid var(--status-bad); color: #A8474C;
   padding: 13px 18px; border-radius: var(--radius); margin-bottom: 20px; font-size: 13px;
 }
+.lib-warning{
+  background: #FDF6E3; border: 1px solid var(--status-warn); color: #8A6D1F;
+  padding: 13px 18px; border-radius: var(--radius); margin-bottom: 20px; font-size: 13px;
+}
 
 /* ---------- PANEL ---------- */
 .panel{
