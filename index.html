@@ -157,7 +157,7 @@
   function loadScript(src) {
     return new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = src; s.onload = resolve; s.onerror = reject;
+      s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('Gagal memuat: ' + src));
       document.head.appendChild(s);
     });
   }
@@ -168,20 +168,36 @@
     }
     return false;
   }
+  function showBootError(msg) {
+    const el = document.getElementById('errorBanner');
+    if (el) { el.style.display = 'block'; el.textContent = msg; }
+    const sync = document.getElementById('syncStatus');
+    if (sync) sync.textContent = 'Gagal memuat.';
+    console.error(msg);
+  }
   (async () => {
-    window.__LIB_OK = window.__LIB_OK || {};
-    window.__LIB_OK.papaparse = await loadWithFallback([
-      'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
-      'https://unpkg.com/papaparse@5.4.1/papaparse.min.js'
-    ]);
-    window.__LIB_OK.chartjs = await loadWithFallback([
-      'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js',
-      'https://unpkg.com/chart.js@4.4.4/dist/chart.umd.min.js'
-    ]);
-    await loadScript('./app.js');
-    if (typeof initDashboard === 'function') initDashboard();
+    try {
+      window.__LIB_OK = window.__LIB_OK || {};
+      window.__LIB_OK.papaparse = await loadWithFallback([
+        'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+        'https://unpkg.com/papaparse@5.4.1/papaparse.min.js'
+      ]);
+      window.__LIB_OK.chartjs = await loadWithFallback([
+        'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js',
+        'https://unpkg.com/chart.js@4.4.4/dist/chart.umd.min.js'
+      ]);
+      // ?v= membantu memastikan browser tidak memakai app.js versi lama dari cache
+      await loadScript('./app.js?v=3');
+      if (typeof initDashboard === 'function') {
+        initDashboard();
+      } else {
+        showBootError('app.js berhasil dimuat tapi fungsi initDashboard() tidak ditemukan di dalamnya. Ini biasanya berarti file app.js yang ter-upload di repo masih versi lama — pastikan Anda mengganti SELURUH isi app.js dengan versi terbaru, lalu hard refresh (Ctrl+Shift+R).');
+      }
+    } catch (e) {
+      showBootError('Gagal memuat app.js: ' + e.message + '. Pastikan file app.js ada di folder yang sama dengan index.html di repo GitHub Anda.');
+    }
   })();
 </script>
 </body>
