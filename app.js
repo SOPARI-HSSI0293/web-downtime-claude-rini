@@ -5,7 +5,7 @@
    ========================================================================= */
 const CONFIG = {
   SHEET_ID: '1RBYWSWbJSlrtwx3t33y6oMLLbp-PmTbSjEAB9ccipCY',
-  DATADT_GID: '1423300991' // <-- ganti dengan angka gid sheet "datadt"
+  DATADT_GID: 1423300991
 };
 
 // Header yang diharapkan pada sheet "datadt" (urutan bebas, dicocokkan by name)
@@ -141,11 +141,18 @@ function getFiltered() {
 
 function applyFilters() {
   currentFiltered = getFiltered();
-  renderKPIs(currentFiltered);
-  renderCompositionStrip(currentFiltered);
-  renderInsights(currentFiltered);
-  renderCharts(currentFiltered);
-  renderTable(currentFiltered);
+  // Setiap bagian dibungkus try/catch dan berdiri sendiri: kalau satu bagian
+  // gagal (mis. Chart.js belum termuat), bagian lain tetap tampil normal.
+  safeRun('KPI', () => renderKPIs(currentFiltered));
+  safeRun('Komposisi', () => renderCompositionStrip(currentFiltered));
+  safeRun('Insight', () => renderInsights(currentFiltered));
+  safeRun('Tabel', () => renderTable(currentFiltered));
+  safeRun('Grafik', () => renderCharts(currentFiltered));
+}
+
+function safeRun(label, fn) {
+  try { fn(); }
+  catch (e) { console.error(`Gagal render bagian "${label}":`, e); }
 }
 
 /* =========================================================================
@@ -165,6 +172,11 @@ function showError(msg) {
   b.textContent = msg;
 }
 function hideError() { document.getElementById('errorBanner').style.display = 'none'; }
+function showLibWarning(msg) {
+  const b = document.getElementById('libWarning');
+  b.style.display = 'block';
+  b.textContent = msg;
+}
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
@@ -321,6 +333,8 @@ function paretoOptions() {
 }
 
 function renderCharts(data) {
+  if (typeof Chart === 'undefined') return; // Chart.js gagal dimuat — sudah ditandai lewat error banner di initDashboard()
+
   // Pareto per kategori
   const catTotals = groupSum(data, r => r.__kategori);
   const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
@@ -331,6 +345,7 @@ function renderCharts(data) {
   const cumPct = catValues.map(v => { cum += v; return totalAll ? (cum / totalAll * 100) : 0; });
 
   chartPareto = upsertChart(chartPareto, 'chartPareto', {
+    type: 'bar',
     data: {
       labels: catLabels,
       datasets: [
@@ -462,7 +477,18 @@ function bindEvents() {
   document.getElementById('btnRefresh').addEventListener('click', loadAll);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Dipanggil oleh loader di index.html setelah PapaParse & Chart.js (atau
+// cadangannya) selesai dicoba dimuat. Tidak lagi bergantung pada
+// DOMContentLoaded karena script ini disisipkan secara dinamis.
+function initDashboard() {
+  if (typeof Papa === 'undefined') {
+    showError('Gagal memuat pustaka PapaParse dari semua CDN cadangan. Data tidak bisa diproses — periksa apakah jaringan/firewall memblokir cdn.jsdelivr.net, cdnjs.cloudflare.com, dan unpkg.com.');
+    return;
+  }
+  if (typeof Chart === 'undefined') {
+    showLibWarning('Grafik tidak bisa ditampilkan: pustaka Chart.js gagal dimuat dari semua CDN cadangan (kemungkinan diblokir jaringan/firewall). KPI, insight, dan tabel tetap berfungsi normal.');
+  }
   bindEvents();
   loadAll();
-});
+}
+window.initDashboard = initDashboard;
