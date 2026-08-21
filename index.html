@@ -28,6 +28,7 @@
   </header>
 
   <div id="errorBanner" class="error-banner" style="display:none;"></div>
+  <div id="libWarning" class="lib-warning" style="display:none;"></div>
 
   <!-- FILTERS -->
   <section class="panel filters">
@@ -150,8 +151,38 @@
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="./app.js"></script>
+<script>
+  // Loader dengan CDN cadangan: kalau satu domain diblokir jaringan/firewall,
+  // otomatis coba domain lain sebelum menyerah.
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src; s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  async function loadWithFallback(urls) {
+    for (const url of urls) {
+      try { await loadScript(url); return true; }
+      catch (e) { console.warn('Gagal memuat dari', url); }
+    }
+    return false;
+  }
+  (async () => {
+    window.__LIB_OK = window.__LIB_OK || {};
+    window.__LIB_OK.papaparse = await loadWithFallback([
+      'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js',
+      'https://unpkg.com/papaparse@5.4.1/papaparse.min.js'
+    ]);
+    window.__LIB_OK.chartjs = await loadWithFallback([
+      'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js',
+      'https://unpkg.com/chart.js@4.4.4/dist/chart.umd.min.js'
+    ]);
+    await loadScript('./app.js');
+    if (typeof initDashboard === 'function') initDashboard();
+  })();
+</script>
 </body>
 </html>
